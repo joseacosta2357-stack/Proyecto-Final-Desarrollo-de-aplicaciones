@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, ScrollView, Pressable, useColorScheme, Modal, TextInput, Alert } from 'react-native';
+import { StyleSheet, ScrollView, Pressable, useColorScheme, Modal, TextInput, Alert, View as RNView } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -154,7 +154,7 @@ export default function AvisosScreen() {
 
       {/* Create/Edit Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent={true}>
-        <View style={[styles.modalOverlay, { backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.5)' }]}>
+        <RNView style={[styles.modalOverlay, { backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.5)' }]}>
           <View style={[styles.modalContent, { backgroundColor: isDark ? '#1e1e1e' : '#fff' }]}>
             <Text style={[styles.modalTitle, { color: isDark ? '#fff' : '#000' }]}>
               {avisoActual.id ? 'Editar Aviso' : 'Nuevo Aviso'}
@@ -212,12 +212,12 @@ export default function AvisosScreen() {
               </Pressable>
             </View>
           </View>
-        </View>
+        </RNView>
       </Modal>
 
       {/* Detail Modal */}
       <Modal visible={detalleModalVisible} animationType="fade" transparent={true}>
-        <View style={[styles.modalOverlay, { backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.5)' }]}>
+        <RNView style={[styles.modalOverlay, { backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.5)' }]}>
           <View style={[styles.modalContent, { backgroundColor: isDark ? '#1e1e1e' : '#fff' }]}>
             {avisoDetalle && (
               <>
@@ -258,7 +258,7 @@ export default function AvisosScreen() {
               </>
             )}
           </View>
-        </View>
+        </RNView>
       </Modal>
     </View>
   );

@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, ScrollView, Pressable, useColorScheme, Modal, TextInput, Alert } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { StyleSheet, ScrollView, Pressable, useColorScheme, Modal, TextInput, Alert, View as RNView } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 
 export type EstadoTarea = 'pendiente' | 'en revisión' | 'entregada';
 
@@ -36,10 +37,25 @@ export default function TareasScreen() {
   
   const [tareaActual, setTareaActual] = useState<Partial<Tarea>>({});
   const [tareaDetalle, setTareaDetalle] = useState<Tarea | null>(null);
+  
+  const [materiasGlobales, setMateriasGlobales] = useState<string[]>([]);
 
-  useEffect(() => {
-    loadTareas();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadTareas();
+      loadMaterias();
+    }, [])
+  );
+
+  const loadMaterias = async () => {
+    try {
+      const stored = await AsyncStorage.getItem('@materias_data');
+      if (stored) {
+        const mats = JSON.parse(stored);
+        setMateriasGlobales(mats.map((m: any) => m.nombre));
+      }
+    } catch(e) {}
+  };
 
   const loadTareas = async () => {
     try {
@@ -90,14 +106,16 @@ export default function TareasScreen() {
   };
 
   const handleDelete = (id: string) => {
-    Alert.alert('Eliminar Tarea', '¿Estás seguro de eliminar esta tarea?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Eliminar', style: 'destructive', onPress: () => {
-        const nuevasTareas = tareas.filter(t => t.id !== id);
-        saveTareas(nuevasTareas);
-        setDetalleModalVisible(false);
-      }}
-    ]);
+    setDetalleModalVisible(false);
+    setTimeout(() => {
+      Alert.alert('Eliminar Tarea', '¿Estás seguro de eliminar esta tarea?', [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: () => {
+          const nuevasTareas = tareas.filter(t => t.id !== id);
+          saveTareas(nuevasTareas);
+        }}
+      ]);
+    }, 300);
   };
 
   const handleStatusChange = (id: string, nuevoEstado: EstadoTarea) => {
@@ -108,7 +126,7 @@ export default function TareasScreen() {
     }
   };
 
-  const materiasUnicas = ['todas', ...Array.from(new Set(tareas.map(t => t.materia)))];
+  const materiasUnicas = ['todas', ...Array.from(new Set([...materiasGlobales, ...tareas.map(t => t.materia)]))];
 
   const tareasFiltradas = tareas.filter(t => {
     const pasaEstado = filtroEstado === 'todos' || t.estado === filtroEstado;
@@ -229,7 +247,7 @@ export default function TareasScreen() {
 
       {/* Modal Crear/Editar Tarea */}
       <Modal visible={modalVisible} animationType="slide" transparent={true}>
-        <View style={[styles.modalOverlay, { backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.5)' }]}>
+        <RNView style={[styles.modalOverlay, { backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.5)' }]}>
           <View style={[styles.modalContent, { backgroundColor: isDark ? '#1e1e1e' : '#fff' }]}>
             <Text style={[styles.modalTitle, { color: isDark ? '#fff' : '#000' }]}>
               {tareaActual.id ? 'Editar Tarea' : 'Nueva Tarea'}
@@ -295,12 +313,12 @@ export default function TareasScreen() {
               </Pressable>
             </View>
           </View>
-        </View>
+        </RNView>
       </Modal>
 
       {/* Modal Detalle Tarea */}
       <Modal visible={detalleModalVisible} animationType="fade" transparent={true}>
-        <View style={[styles.modalOverlay, { backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.5)' }]}>
+        <RNView style={[styles.modalOverlay, { backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.5)' }]}>
           <View style={[styles.modalContent, { backgroundColor: isDark ? '#1e1e1e' : '#fff' }]}>
             {tareaDetalle && (
               <>
@@ -365,7 +383,7 @@ export default function TareasScreen() {
               </>
             )}
           </View>
-        </View>
+        </RNView>
       </Modal>
     </View>
   );

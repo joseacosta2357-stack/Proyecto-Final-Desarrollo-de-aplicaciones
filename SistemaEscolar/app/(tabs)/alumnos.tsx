@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, ScrollView, Pressable, useColorScheme, Image, Modal, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, ScrollView, Pressable, useColorScheme, Image, Modal, TextInput, TouchableOpacity, Alert, View as RNView } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -327,7 +327,7 @@ export default function AlumnosScreen() {
 
       {/* Detail Modal */}
       <Modal visible={detailVisible} animationType="fade" transparent={true} onRequestClose={() => setDetailVisible(false)}>
-        <View style={styles.detailModalOverlay}>
+        <RNView style={styles.detailModalOverlay}>
           <View style={[styles.detailModalContent, { backgroundColor: cardBg }]}>
             {selectedAlumno && (
               <>
@@ -433,12 +433,12 @@ export default function AlumnosScreen() {
               </>
             )}
           </View>
-        </View>
+        </RNView>
       </Modal>
 
       {/* Grade Modal (Add / Edit) */}
       <Modal visible={gradeModalVisible} animationType="fade" transparent={true} onRequestClose={() => setGradeModalVisible(false)}>
-        <View style={styles.detailModalOverlay}>
+        <RNView style={styles.detailModalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: cardBg }]}>
             <View style={[styles.modalHeader, { backgroundColor: cardBg, padding: 0, paddingBottom: 15, paddingTop: 10, borderBottomWidth: 0 }]}>
               <Text style={[styles.modalTitle, { color: textColor }]}>
@@ -498,7 +498,7 @@ export default function AlumnosScreen() {
               </TouchableOpacity>
             </ScrollView>
           </View>
-        </View>
+        </RNView>
       </Modal>
 
     </View>

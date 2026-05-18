@@ -30,7 +30,12 @@ export default function HomeScreen() {
 
           const materiasCount = materiasStr ? JSON.parse(materiasStr).length : 0;
           const alumnosCount = alumnosStr ? JSON.parse(alumnosStr).length : 0;
-          const tareasCount = tareasStr ? JSON.parse(tareasStr).length : 0;
+          
+          let tareasCount = 0;
+          if (tareasStr) {
+            const parsedTareas = JSON.parse(tareasStr);
+            tareasCount = parsedTareas.filter((t: any) => t.estado === 'pendiente').length;
+          }
           
           let ultimoAviso = 'Sin avisos';
           if (avisosStr) {
@@ -73,7 +78,7 @@ export default function HomeScreen() {
       color: '#2ecc71',
     },
     {
-      title: 'Tareas',
+      title: 'Tareas Pendientes',
       value: stats.tareas.toString(),
       icon: 'tasks',
       href: '/tareas',
