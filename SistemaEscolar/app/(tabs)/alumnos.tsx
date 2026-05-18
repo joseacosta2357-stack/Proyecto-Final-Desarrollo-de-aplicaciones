@@ -1,53 +1,304 @@
-import React from 'react';
-import { StyleSheet, ScrollView, Pressable, useColorScheme, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, ScrollView, Pressable, useColorScheme, Image, Modal, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { Text, View } from '@/components/Themed';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const ALUMNOS_DATA = [
-  { id: '1', nombre: 'Andrea Rodríguez', grupo: '3° A', promedio: 9.8, avatar: 'https://i.pravatar.cc/150?u=1' },
-  { id: '2', nombre: 'Carlos Mendoza', grupo: '3° A', promedio: 8.5, avatar: 'https://i.pravatar.cc/150?u=2' },
-  { id: '3', nombre: 'Diana López', grupo: '3° B', promedio: 9.1, avatar: 'https://i.pravatar.cc/150?u=3' },
-  { id: '4', nombre: 'Fernando Castillo', grupo: '3° A', promedio: 7.9, avatar: 'https://i.pravatar.cc/150?u=4' },
-  { id: '5', nombre: 'Gabriela Silva', grupo: '3° C', promedio: 9.5, avatar: 'https://i.pravatar.cc/150?u=5' },
-  { id: '6', nombre: 'Hugo Sánchez', grupo: '3° B', promedio: 8.2, avatar: 'https://i.pravatar.cc/150?u=6' },
-  { id: '7', nombre: 'Isabel Torres', grupo: '3° C', promedio: 8.9, avatar: 'https://i.pravatar.cc/150?u=7' },
-];
+// Types
+interface Alumno {
+  id: string;
+  nombre: string;
+  grupo: string;
+  contacto: string;
+  avatar: string;
+  promedio: number;
+  tareasEntregadas: number;
+  tareasTotales: number;
+}
+
+const STORAGE_KEY = '@alumnos_data';
 
 export default function AlumnosScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
+  const [alumnos, setAlumnos] = useState<Alumno[]>([]);
+  const [formVisible, setFormVisible] = useState(false);
+  const [detailVisible, setDetailVisible] = useState(false);
+  const [selectedAlumno, setSelectedAlumno] = useState<Alumno | null>(null);
+
+  // Form states
+  const [nombre, setNombre] = useState('');
+  const [grupo, setGrupo] = useState('');
+  const [contacto, setContacto] = useState('');
+
+  // Load data
+  useEffect(() => {
+    loadAlumnos();
+  }, []);
+
+  const loadAlumnos = async () => {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEY);
+      if (data) {
+        setAlumnos(JSON.parse(data));
+      }
+    } catch (e) {
+      console.error('Error loading alumnos', e);
+    }
+  };
+
+  const saveAlumnos = async (newAlumnos: Alumno[]) => {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newAlumnos));
+      setAlumnos(newAlumnos);
+    } catch (e) {
+      console.error('Error saving alumnos', e);
+    }
+  };
+
+  const generateAvatar = (name: string) => {
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&size=150`;
+  };
+
   const getPromedioColor = (promedio: number) => {
+    if (promedio === 0) return '#888'; // Sin calificaciones
     if (promedio >= 9.0) return '#2ecc71';
     if (promedio >= 8.0) return '#f39c12';
     return '#e74c3c';
   };
 
-  return (
-    <ScrollView style={[styles.container, isDark ? styles.containerDark : styles.containerLight]}>
-      <View style={styles.listContainer}>
-        {ALUMNOS_DATA.map((item) => (
-          <Pressable key={item.id} style={({ pressed }) => [
-            styles.card,
-            isDark ? styles.cardDark : styles.cardLight,
-            pressed && styles.cardPressed
-          ]}>
-            <Image source={{ uri: item.avatar }} style={styles.avatar} />
-            
-            <View style={styles.cardContent}>
-              <Text style={[styles.studentName, { color: isDark ? '#f0f0f0' : '#222' }]}>{item.nombre}</Text>
-              <Text style={[styles.groupText, { color: isDark ? '#aaa' : '#555' }]}>Grupo: {item.grupo}</Text>
-            </View>
+  const openAddForm = () => {
+    setSelectedAlumno(null);
+    setNombre('');
+    setGrupo('');
+    setContacto('');
+    setFormVisible(true);
+  };
 
-            <View style={styles.promedioContainer}>
-              <Text style={[styles.promedioLabel, { color: isDark ? '#aaa' : '#555' }]}>Promedio</Text>
-              <Text style={[styles.promedioValue, { color: getPromedioColor(item.promedio) }]}>
-                {item.promedio.toFixed(1)}
-              </Text>
+  const openEditForm = (alumno: Alumno) => {
+    setSelectedAlumno(alumno);
+    setNombre(alumno.nombre);
+    setGrupo(alumno.grupo);
+    setContacto(alumno.contacto || '');
+    setDetailVisible(false);
+    setFormVisible(true);
+  };
+
+  const handleSave = () => {
+    if (!nombre.trim() || !grupo.trim()) {
+      Alert.alert('Error', 'El nombre y el grupo son obligatorios.');
+      return;
+    }
+
+    const newAlumno: Alumno = {
+      id: selectedAlumno ? selectedAlumno.id : Date.now().toString(),
+      nombre: nombre.trim(),
+      grupo: grupo.trim(),
+      contacto: contacto.trim(),
+      avatar: selectedAlumno ? selectedAlumno.avatar : generateAvatar(nombre.trim()),
+      promedio: selectedAlumno ? selectedAlumno.promedio : 0, // 0 means no grades yet
+      tareasEntregadas: selectedAlumno ? selectedAlumno.tareasEntregadas : 0,
+      tareasTotales: selectedAlumno ? selectedAlumno.tareasTotales : 0,
+    };
+
+    let updatedAlumnos;
+    if (selectedAlumno) {
+      updatedAlumnos = alumnos.map(a => a.id === selectedAlumno.id ? newAlumno : a);
+    } else {
+      updatedAlumnos = [...alumnos, newAlumno];
+    }
+
+    saveAlumnos(updatedAlumnos);
+    setFormVisible(false);
+  };
+
+  const handleDelete = (id: string) => {
+    Alert.alert(
+      'Eliminar Alumno',
+      '¿Estás seguro que deseas eliminar este alumno?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Eliminar', 
+          style: 'destructive',
+          onPress: () => {
+            const updatedAlumnos = alumnos.filter(a => a.id !== id);
+            saveAlumnos(updatedAlumnos);
+            setDetailVisible(false);
+          }
+        }
+      ]
+    );
+  };
+
+  const openDetail = (alumno: Alumno) => {
+    setSelectedAlumno(alumno);
+    setDetailVisible(true);
+  };
+
+  // Theming colors
+  const bgColor = isDark ? '#121212' : '#f8f9fa';
+  const cardBg = isDark ? '#1e1e1e' : '#fff';
+  const textColor = isDark ? '#f0f0f0' : '#222';
+  const subTextColor = isDark ? '#aaaaaa' : '#555555';
+  const inputBg = isDark ? '#2c2c2c' : '#f0f0f0';
+
+  return (
+    <View style={[styles.container, { backgroundColor: bgColor }]}>
+      <ScrollView style={styles.container}>
+        <View style={styles.listContainer}>
+          {alumnos.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <FontAwesome name="users" size={48} color={subTextColor} style={{ marginBottom: 16 }} />
+              <Text style={[styles.emptyText, { color: subTextColor }]}>No hay alumnos registrados.</Text>
             </View>
-          </Pressable>
-        ))}
-      </View>
-    </ScrollView>
+          ) : (
+            alumnos.map((item) => (
+              <Pressable key={item.id} onPress={() => openDetail(item)} style={({ pressed }) => [
+                styles.card,
+                { backgroundColor: cardBg },
+                pressed && styles.cardPressed
+              ]}>
+                <Image source={{ uri: item.avatar }} style={styles.avatar} />
+                
+                <View style={[styles.cardContent, { backgroundColor: cardBg }]}>
+                  <Text style={[styles.studentName, { color: textColor }]}>{item.nombre}</Text>
+                  <Text style={[styles.groupText, { color: subTextColor }]}>Grupo: {item.grupo}</Text>
+                </View>
+
+                <View style={[styles.promedioContainer, { backgroundColor: cardBg }]}>
+                  <Text style={[styles.promedioLabel, { color: subTextColor }]}>Promedio</Text>
+                  <Text style={[styles.promedioValue, { color: getPromedioColor(item.promedio) }]}>
+                    {item.promedio === 0 ? '--' : item.promedio.toFixed(1)}
+                  </Text>
+                </View>
+              </Pressable>
+            ))
+          )}
+        </View>
+      </ScrollView>
+
+      {/* Floating Action Button */}
+      <TouchableOpacity style={styles.fab} onPress={openAddForm}>
+        <FontAwesome name="plus" size={20} color="#fff" />
+      </TouchableOpacity>
+
+      {/* Form Modal (Add / Edit) */}
+      <Modal visible={formVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setFormVisible(false)}>
+        <View style={[styles.modalContainer, { backgroundColor: bgColor }]}>
+          <View style={[styles.modalHeader, { backgroundColor: bgColor }]}>
+            <Text style={[styles.modalTitle, { color: textColor }]}>
+              {selectedAlumno ? 'Editar Alumno' : 'Nuevo Alumno'}
+            </Text>
+            <TouchableOpacity onPress={() => setFormVisible(false)} style={styles.closeBtn}>
+              <FontAwesome name="times" size={24} color={textColor} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalBody}>
+            <Text style={[styles.label, { color: textColor }]}>Nombre Completo *</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: inputBg, color: textColor }]}
+              placeholder="Ej. Juan Pérez López"
+              placeholderTextColor={subTextColor}
+              value={nombre}
+              onChangeText={setNombre}
+            />
+
+            <Text style={[styles.label, { color: textColor }]}>Grupo / Grado *</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: inputBg, color: textColor }]}
+              placeholder="Ej. 3° A"
+              placeholderTextColor={subTextColor}
+              value={grupo}
+              onChangeText={setGrupo}
+            />
+
+            <Text style={[styles.label, { color: textColor }]}>Correo o Contacto</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: inputBg, color: textColor }]}
+              placeholder="Ej. juan.perez@correo.com"
+              placeholderTextColor={subTextColor}
+              value={contacto}
+              onChangeText={setContacto}
+              keyboardType="email-address"
+            />
+
+            <TouchableOpacity style={styles.primaryButton} onPress={handleSave}>
+              <Text style={styles.primaryButtonText}>Guardar</Text>
+            </TouchableOpacity>
+            <View style={{ height: 40, backgroundColor: bgColor }} />
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Detail Modal */}
+      <Modal visible={detailVisible} animationType="fade" transparent={true} onRequestClose={() => setDetailVisible(false)}>
+        <View style={styles.detailModalOverlay}>
+          <View style={[styles.detailModalContent, { backgroundColor: cardBg }]}>
+            {selectedAlumno && (
+              <>
+                <View style={[styles.detailHeader, { backgroundColor: cardBg }]}>
+                  <TouchableOpacity onPress={() => setDetailVisible(false)} style={[styles.closeDetailBtn, { backgroundColor: isDark ? '#333' : '#eee' }]}>
+                    <FontAwesome name="times" size={20} color={textColor} />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={[styles.profileHeader, { backgroundColor: cardBg }]}>
+                  <Image source={{ uri: selectedAlumno.avatar }} style={styles.profileAvatar} />
+                  <Text style={[styles.profileName, { color: textColor }]}>{selectedAlumno.nombre}</Text>
+                  <Text style={[styles.profileGroup, { color: subTextColor }]}>Grupo {selectedAlumno.grupo}</Text>
+                </View>
+
+                <ScrollView style={[styles.detailBody, { backgroundColor: cardBg }]}>
+                  
+                  <View style={[styles.infoCard, { backgroundColor: isDark ? '#2a2a2a' : '#f5f5f5' }]}>
+                    <Text style={[styles.sectionTitle, { color: textColor }]}>Información de Contacto</Text>
+                    <View style={styles.infoRow}>
+                      <FontAwesome name="envelope" size={16} color={subTextColor} style={{ width: 24 }} />
+                      <Text style={[styles.infoText, { color: textColor }]}>{selectedAlumno.contacto || 'Sin contacto registrado'}</Text>
+                    </View>
+                  </View>
+
+                  <Text style={[styles.sectionTitle, { color: textColor, marginTop: 24, marginLeft: 4 }]}>Resumen Académico</Text>
+                  
+                  <View style={styles.statsContainer}>
+                    <View style={[styles.statBox, { backgroundColor: isDark ? '#2a2a2a' : '#f5f5f5' }]}>
+                      <Text style={[styles.statLabel, { color: subTextColor }]}>Promedio General</Text>
+                      <Text style={[styles.statValue, { color: getPromedioColor(selectedAlumno.promedio) }]}>
+                        {selectedAlumno.promedio === 0 ? '--' : selectedAlumno.promedio.toFixed(1)}
+                      </Text>
+                    </View>
+
+                    <View style={[styles.statBox, { backgroundColor: isDark ? '#2a2a2a' : '#f5f5f5' }]}>
+                      <Text style={[styles.statLabel, { color: subTextColor }]}>Tareas Entregadas</Text>
+                      <Text style={[styles.statValue, { color: '#3498db' }]}>
+                        {selectedAlumno.tareasEntregadas}/{selectedAlumno.tareasTotales || 0}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={{ height: 40, backgroundColor: cardBg }} />
+                </ScrollView>
+
+                <View style={[styles.detailActions, { backgroundColor: cardBg }]}>
+                  <TouchableOpacity style={[styles.actionBtn, styles.editBtn]} onPress={() => openEditForm(selectedAlumno)}>
+                    <FontAwesome name="pencil" size={16} color="#fff" style={{ marginRight: 8 }} />
+                    <Text style={styles.actionBtnText}>Editar Perfil</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.actionBtn, styles.deleteBtn]} onPress={() => handleDelete(selectedAlumno.id)}>
+                    <FontAwesome name="trash" size={16} color="#fff" style={{ marginRight: 8 }} />
+                    <Text style={styles.actionBtnText}>Eliminar</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+    </View>
   );
 }
 
@@ -55,16 +306,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  containerLight: {
-    backgroundColor: '#f8f9fa',
-  },
-  containerDark: {
-    backgroundColor: '#121212',
-  },
   listContainer: {
     padding: 16,
     paddingTop: 24,
+    paddingBottom: 80,
     backgroundColor: 'transparent',
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
+  emptyText: {
+    fontSize: 16,
+    textAlign: 'center',
   },
   card: {
     flexDirection: 'row',
@@ -78,12 +334,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  cardLight: {
-    backgroundColor: '#fff',
-  },
-  cardDark: {
-    backgroundColor: '#1e1e1e',
-  },
   cardPressed: {
     transform: [{ scale: 0.98 }],
     opacity: 0.9,
@@ -96,7 +346,6 @@ const styles = StyleSheet.create({
   },
   cardContent: {
     flex: 1,
-    backgroundColor: 'transparent',
   },
   studentName: {
     fontSize: 16,
@@ -105,19 +354,199 @@ const styles = StyleSheet.create({
   },
   groupText: {
     fontSize: 14,
-    color: '#888',
   },
   promedioContainer: {
     alignItems: 'flex-end',
-    backgroundColor: 'transparent',
   },
   promedioLabel: {
     fontSize: 12,
-    color: '#888',
     marginBottom: 2,
   },
   promedioValue: {
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#3498db',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  
+  // Modal Form Styles
+  modalContainer: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    paddingTop: 40,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(150,150,150,0.2)',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  closeBtn: {
+    padding: 8,
+  },
+  modalBody: {
+    padding: 20,
+    backgroundColor: 'transparent',
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+    marginTop: 16,
+  },
+  input: {
+    borderRadius: 10,
+    padding: 14,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  primaryButton: {
+    backgroundColor: '#3498db',
+    borderRadius: 10,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 32,
+  },
+  primaryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
+  // Detail Modal Styles
+  detailModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  detailModalContent: {
+    borderRadius: 24,
+    maxHeight: '90%',
+    overflow: 'hidden',
+  },
+  detailHeader: {
+    padding: 16,
+    alignItems: 'flex-end',
+  },
+  closeDetailBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileHeader: {
+    alignItems: 'center',
+    paddingBottom: 24,
+  },
+  profileAvatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: 16,
+    borderWidth: 3,
+    borderColor: '#3498db',
+  },
+  profileName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  profileGroup: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  detailBody: {
+    paddingHorizontal: 24,
+  },
+  infoCard: {
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 8,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  infoText: {
+    fontSize: 15,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  statBox: {
+    flex: 1,
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+    marginHorizontal: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  detailActions: {
+    flexDirection: 'row',
+    padding: 24,
+    paddingTop: 16,
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(150,150,150,0.1)',
+  },
+  actionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 14,
+    borderRadius: 10,
+  },
+  editBtn: {
+    backgroundColor: '#3498db',
+    marginRight: 12,
+  },
+  deleteBtn: {
+    backgroundColor: '#e74c3c',
+  },
+  actionBtnText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
