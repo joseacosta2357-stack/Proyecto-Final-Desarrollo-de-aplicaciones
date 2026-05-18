@@ -450,33 +450,48 @@ export default function AlumnosScreen() {
             </View>
 
             <ScrollView style={{ width: '100%', maxHeight: 400 }}>
-              <Text style={[styles.label, { color: textColor, marginTop: 10 }]}>Materia *</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: inputBg, color: textColor }]}
-                placeholder="Ej. Matemáticas"
-                placeholderTextColor={subTextColor}
-                value={materia}
-                onChangeText={setMateria}
-              />
+              <View style={styles.inputGroup}>
+                <Text style={[styles.inputLabel, { color: subTextColor }]}>Materia *</Text>
+                <View style={[styles.inputWrapper, { backgroundColor: inputBg, borderColor: isDark ? '#444' : '#ddd' }]}>
+                  <FontAwesome name="book" size={16} color={subTextColor} style={styles.inputIcon} />
+                  <TextInput
+                    style={[styles.styledInput, { color: textColor }]}
+                    placeholder="Ej. Matemáticas"
+                    placeholderTextColor={subTextColor}
+                    value={materia}
+                    onChangeText={setMateria}
+                  />
+                </View>
+              </View>
 
-              <Text style={[styles.label, { color: textColor }]}>Calificación (0 - 10) *</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: inputBg, color: textColor }]}
-                placeholder="Ej. 8.5"
-                placeholderTextColor={subTextColor}
-                value={nota}
-                onChangeText={setNota}
-                keyboardType="numeric"
-              />
+              <View style={styles.inputGroup}>
+                <Text style={[styles.inputLabel, { color: subTextColor }]}>Calificación (0 - 10) *</Text>
+                <View style={[styles.gradeInputWrapper, { backgroundColor: isDark ? '#222' : '#f8f9fa', borderColor: isDark ? '#555' : '#ccc' }]}>
+                  <TextInput
+                    style={[styles.gradeInputText, { color: textColor }]}
+                    placeholder="0.0"
+                    placeholderTextColor={subTextColor}
+                    value={nota}
+                    onChangeText={setNota}
+                    keyboardType="numeric"
+                    maxLength={4}
+                  />
+                </View>
+              </View>
 
-              <Text style={[styles.label, { color: textColor }]}>Descripción (Opcional)</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: inputBg, color: textColor }]}
-                placeholder="Ej. Examen parcial"
-                placeholderTextColor={subTextColor}
-                value={descripcionGrade}
-                onChangeText={setDescripcionGrade}
-              />
+              <View style={styles.inputGroup}>
+                <Text style={[styles.inputLabel, { color: subTextColor }]}>Descripción (Opcional)</Text>
+                <View style={[styles.inputWrapper, { backgroundColor: inputBg, borderColor: isDark ? '#444' : '#ddd' }]}>
+                  <FontAwesome name="pencil" size={16} color={subTextColor} style={styles.inputIcon} />
+                  <TextInput
+                    style={[styles.styledInput, { color: textColor }]}
+                    placeholder="Ej. Examen parcial"
+                    placeholderTextColor={subTextColor}
+                    value={descripcionGrade}
+                    onChangeText={setDescripcionGrade}
+                  />
+                </View>
+              </View>
 
               <TouchableOpacity style={[styles.primaryButton, { marginTop: 24, marginBottom: 10 }]} onPress={handleSaveGrade}>
                 <Text style={styles.primaryButtonText}>Guardar</Text>
@@ -818,5 +833,43 @@ const styles = StyleSheet.create({
   },
   notaActions: {
     flexDirection: 'row',
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    height: 50,
+  },
+  inputIcon: {
+    marginRight: 10,
+  },
+  styledInput: {
+    flex: 1,
+    fontSize: 16,
+    height: '100%',
+  },
+  gradeInputWrapper: {
+    borderWidth: 2,
+    borderRadius: 16,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gradeInputText: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    width: '100%',
   },
 });

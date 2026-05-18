@@ -1,38 +1,87 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { StyleSheet, Pressable, ScrollView, useColorScheme } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import { Link } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
+  const [stats, setStats] = useState({
+    materias: 0,
+    alumnos: 0,
+    tareas: 0,
+    ultimoAviso: 'Sin avisos',
+  });
+
+  useFocusEffect(
+    useCallback(() => {
+      const loadStats = async () => {
+        try {
+          const [materiasStr, alumnosStr, tareasStr, avisosStr] = await Promise.all([
+            AsyncStorage.getItem('@materias_data'),
+            AsyncStorage.getItem('@alumnos_data'),
+            AsyncStorage.getItem('@tareas_data'),
+            AsyncStorage.getItem('@avisos_data')
+          ]);
+
+          const materiasCount = materiasStr ? JSON.parse(materiasStr).length : 0;
+          const alumnosCount = alumnosStr ? JSON.parse(alumnosStr).length : 0;
+          const tareasCount = tareasStr ? JSON.parse(tareasStr).length : 0;
+          
+          let ultimoAviso = 'Sin avisos';
+          if (avisosStr) {
+            const avisosArr = JSON.parse(avisosStr);
+            if (avisosArr.length > 0) {
+              // Get the most recent one by timestamp
+              const sorted = avisosArr.sort((a: any, b: any) => b.timestamp - a.timestamp);
+              ultimoAviso = sorted[0].titulo;
+            }
+          }
+
+          setStats({
+            materias: materiasCount,
+            alumnos: alumnosCount,
+            tareas: tareasCount,
+            ultimoAviso
+          });
+        } catch (error) {
+          console.error('Error loading stats:', error);
+        }
+      };
+
+      loadStats();
+    }, [])
+  );
+
   const cards = [
     {
       title: 'Materias Activas',
-      value: '6',
+      value: stats.materias.toString(),
       icon: 'book',
       href: '/materias',
       color: '#3498db',
     },
     {
       title: 'Total de Alumnos',
-      value: '124',
+      value: stats.alumnos.toString(),
       icon: 'users',
       href: '/alumnos',
       color: '#2ecc71',
     },
     {
-      title: 'Tareas Pendientes',
-      value: '12',
+      title: 'Tareas',
+      value: stats.tareas.toString(),
       icon: 'tasks',
       href: '/tareas',
       color: '#e74c3c',
     },
     {
       title: 'Último Aviso',
-      value: 'Reunión de padres',
+      value: stats.ultimoAviso,
       icon: 'bell',
       href: '/avisos',
       color: '#f39c12',
@@ -59,7 +108,7 @@ export default function HomeScreen() {
               </View>
               <View style={styles.cardContent}>
                 <Text style={[styles.cardTitle, { color: isDark ? '#aaa' : '#888' }]}>{card.title}</Text>
-                <Text style={[styles.cardValue, { color: card.color }]}>{card.value}</Text>
+                <Text style={[styles.cardValue, { color: card.color }]} numberOfLines={1}>{card.value}</Text>
               </View>
               <FontAwesome name="chevron-right" size={16} color={isDark ? '#555' : '#ccc'} />
             </Pressable>
