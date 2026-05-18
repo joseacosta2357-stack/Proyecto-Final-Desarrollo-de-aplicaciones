@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, ScrollView, Pressable, useColorScheme, Modal, TextInput, Alert, View as RNView } from 'react-native';
-import { Text, View } from '@/components/Themed';
+import { StyleSheet, ScrollView, Pressable, useColorScheme, Modal, TextInput, Alert, View, Platform } from 'react-native';
+import { Text } from '@/components/Themed';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -37,7 +37,6 @@ export default function TareasScreen() {
   
   const [tareaActual, setTareaActual] = useState<Partial<Tarea>>({});
   const [tareaDetalle, setTareaDetalle] = useState<Tarea | null>(null);
-  
   const [materiasGlobales, setMateriasGlobales] = useState<string[]>([]);
 
   useFocusEffect(
@@ -106,16 +105,22 @@ export default function TareasScreen() {
   };
 
   const handleDelete = (id: string) => {
-    setDetalleModalVisible(false);
-    setTimeout(() => {
+    const doDelete = () => {
+      const nuevasTareas = tareas.filter(t => t.id !== id);
+      saveTareas(nuevasTareas);
+      setDetalleModalVisible(false);
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm('¿Estás seguro de eliminar esta tarea?')) {
+        doDelete();
+      }
+    } else {
       Alert.alert('Eliminar Tarea', '¿Estás seguro de eliminar esta tarea?', [
         { text: 'Cancelar', style: 'cancel' },
-        { text: 'Eliminar', style: 'destructive', onPress: () => {
-          const nuevasTareas = tareas.filter(t => t.id !== id);
-          saveTareas(nuevasTareas);
-        }}
+        { text: 'Eliminar', style: 'destructive', onPress: doDelete }
       ]);
-    }, 300);
+    }
   };
 
   const handleStatusChange = (id: string, nuevoEstado: EstadoTarea) => {
@@ -247,7 +252,7 @@ export default function TareasScreen() {
 
       {/* Modal Crear/Editar Tarea */}
       <Modal visible={modalVisible} animationType="slide" transparent={true}>
-        <RNView style={[styles.modalOverlay, { backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.5)' }]}>
+        <View style={[styles.modalOverlay, { backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.5)' }]}>
           <View style={[styles.modalContent, { backgroundColor: isDark ? '#1e1e1e' : '#fff' }]}>
             <Text style={[styles.modalTitle, { color: isDark ? '#fff' : '#000' }]}>
               {tareaActual.id ? 'Editar Tarea' : 'Nueva Tarea'}
@@ -313,12 +318,12 @@ export default function TareasScreen() {
               </Pressable>
             </View>
           </View>
-        </RNView>
+        </View>
       </Modal>
 
       {/* Modal Detalle Tarea */}
       <Modal visible={detalleModalVisible} animationType="fade" transparent={true}>
-        <RNView style={[styles.modalOverlay, { backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.5)' }]}>
+        <View style={[styles.modalOverlay, { backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.5)' }]}>
           <View style={[styles.modalContent, { backgroundColor: isDark ? '#1e1e1e' : '#fff' }]}>
             {tareaDetalle && (
               <>
@@ -383,7 +388,7 @@ export default function TareasScreen() {
               </>
             )}
           </View>
-        </RNView>
+        </View>
       </Modal>
     </View>
   );

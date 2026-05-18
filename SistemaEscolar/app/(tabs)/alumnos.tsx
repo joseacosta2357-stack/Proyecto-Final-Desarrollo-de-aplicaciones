@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, ScrollView, Pressable, useColorScheme, Image, Modal, TextInput, TouchableOpacity, Alert, View as RNView } from 'react-native';
-import { Text, View } from '@/components/Themed';
+import { StyleSheet, ScrollView, Pressable, useColorScheme, Image, Modal, TextInput, TouchableOpacity, Alert, View, Platform } from 'react-native';
+import { Text } from '@/components/Themed';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -32,6 +32,9 @@ export default function AlumnosScreen() {
   const isDark = colorScheme === 'dark';
 
   const [alumnos, setAlumnos] = useState<Alumno[]>([]);
+  const [materias, setMaterias] = useState<any[]>([]);
+  const [asistenciaGlobal, setAsistenciaGlobal] = useState<any[]>([]);
+  
   const [formVisible, setFormVisible] = useState(false);
   const [detailVisible, setDetailVisible] = useState(false);
   const [selectedAlumno, setSelectedAlumno] = useState<Alumno | null>(null);
@@ -59,8 +62,18 @@ export default function AlumnosScreen() {
       if (data) {
         setAlumnos(JSON.parse(data));
       }
+
+      const matData = await AsyncStorage.getItem('@materias_data');
+      if (matData) {
+        setMaterias(JSON.parse(matData));
+      }
+
+      const asData = await AsyncStorage.getItem('@asistencia_data');
+      if (asData) {
+        setAsistenciaGlobal(JSON.parse(asData));
+      }
     } catch (e) {
-      console.error('Error loading alumnos', e);
+      console.error('Error loading data', e);
     }
   };
 
@@ -137,22 +150,30 @@ export default function AlumnosScreen() {
   };
 
   const handleDelete = (id: string) => {
-    Alert.alert(
-      'Eliminar Alumno',
-      '¿Estás seguro que deseas eliminar este alumno?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Eliminar', 
-          style: 'destructive',
-          onPress: () => {
-            const updatedAlumnos = alumnos.filter(a => a.id !== id);
-            saveAlumnos(updatedAlumnos);
-            setDetailVisible(false);
+    const doDelete = () => {
+      const updatedAlumnos = alumnos.filter(a => a.id !== id);
+      saveAlumnos(updatedAlumnos);
+      setDetailVisible(false);
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm('¿Estás seguro que deseas eliminar este alumno?')) {
+        doDelete();
+      }
+    } else {
+      Alert.alert(
+        'Eliminar Alumno',
+        '¿Estás seguro que deseas eliminar este alumno?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { 
+            text: 'Eliminar', 
+            style: 'destructive',
+            onPress: doDelete
           }
-        }
-      ]
-    );
+        ]
+      );
+    }
   };
 
   const openDetail = (alumno: Alumno) => {
@@ -215,18 +236,26 @@ export default function AlumnosScreen() {
   };
 
   const handleDeleteGrade = (id: string) => {
-    Alert.alert('Eliminar', '¿Estás seguro de eliminar esta calificación?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Eliminar', style: 'destructive', onPress: () => {
-        if (!selectedAlumno) return;
-        const updatedGrades = (selectedAlumno.calificaciones || []).filter(g => g.id !== id);
-        const newPromedio = calculatePromedio(updatedGrades);
-        const updatedAlumno = { ...selectedAlumno, calificaciones: updatedGrades, promedio: newPromedio };
-        setSelectedAlumno(updatedAlumno);
-        const updatedAlumnos = alumnos.map(a => a.id === selectedAlumno.id ? updatedAlumno : a);
-        saveAlumnos(updatedAlumnos);
-      }}
-    ]);
+    const doDelete = () => {
+      if (!selectedAlumno) return;
+      const updatedGrades = (selectedAlumno.calificaciones || []).filter(g => g.id !== id);
+      const newPromedio = calculatePromedio(updatedGrades);
+      const updatedAlumno = { ...selectedAlumno, calificaciones: updatedGrades, promedio: newPromedio };
+      setSelectedAlumno(updatedAlumno);
+      const updatedAlumnos = alumnos.map(a => a.id === selectedAlumno.id ? updatedAlumno : a);
+      saveAlumnos(updatedAlumnos);
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm('¿Estás seguro de eliminar esta calificación?')) {
+        doDelete();
+      }
+    } else {
+      Alert.alert('Eliminar', '¿Estás seguro de eliminar esta calificación?', [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: doDelete }
+      ]);
+    }
   };
 
   // Theming colors
@@ -234,7 +263,8 @@ export default function AlumnosScreen() {
   const cardBg = isDark ? '#1e1e1e' : '#fff';
   const textColor = isDark ? '#f0f0f0' : '#222';
   const subTextColor = isDark ? '#aaaaaa' : '#555555';
-  const inputBg = isDark ? '#2c2c2c' : '#f0f0f0';
+  const inputBg = isDark ? '#2c2c2c' : '#f8f8f8';
+  const inputBorderColor = isDark ? '#444' : '#ddd';
 
   return (
     <View style={[styles.container, { backgroundColor: bgColor }]}>
@@ -291,7 +321,7 @@ export default function AlumnosScreen() {
           <ScrollView style={styles.modalBody}>
             <Text style={[styles.label, { color: textColor }]}>Nombre Completo *</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: inputBg, color: textColor }]}
+              style={[styles.input, { backgroundColor: inputBg, color: textColor, borderColor: inputBorderColor }]}
               placeholder="Ej. Juan Pérez López"
               placeholderTextColor={subTextColor}
               value={nombre}
@@ -300,7 +330,7 @@ export default function AlumnosScreen() {
 
             <Text style={[styles.label, { color: textColor }]}>Grupo / Grado *</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: inputBg, color: textColor }]}
+              style={[styles.input, { backgroundColor: inputBg, color: textColor, borderColor: inputBorderColor }]}
               placeholder="Ej. 3° A"
               placeholderTextColor={subTextColor}
               value={grupo}
@@ -309,7 +339,7 @@ export default function AlumnosScreen() {
 
             <Text style={[styles.label, { color: textColor }]}>Correo o Contacto</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: inputBg, color: textColor }]}
+              style={[styles.input, { backgroundColor: inputBg, color: textColor, borderColor: inputBorderColor }]}
               placeholder="Ej. juan.perez@correo.com"
               placeholderTextColor={subTextColor}
               value={contacto}
@@ -327,7 +357,7 @@ export default function AlumnosScreen() {
 
       {/* Detail Modal */}
       <Modal visible={detailVisible} animationType="fade" transparent={true} onRequestClose={() => setDetailVisible(false)}>
-        <RNView style={styles.detailModalOverlay}>
+        <View style={styles.detailModalOverlay}>
           <View style={[styles.detailModalContent, { backgroundColor: cardBg }]}>
             {selectedAlumno && (
               <>
@@ -363,13 +393,75 @@ export default function AlumnosScreen() {
                       </Text>
                     </View>
 
-                    <View style={[styles.statBox, { backgroundColor: isDark ? '#2a2a2a' : '#f5f5f5' }]}>
-                      <Text style={[styles.statLabel, { color: subTextColor }]}>Tareas Entregadas</Text>
-                      <Text style={[styles.statValue, { color: '#3498db' }]}>
-                        {selectedAlumno.tareasEntregadas}/{selectedAlumno.tareasTotales || 0}
-                      </Text>
-                    </View>
+                    {(() => {
+                      let totalClases = 0;
+                      let totalAsistencias = 0;
+
+                      asistenciaGlobal.forEach(dia => {
+                        const reg = dia.registros.find((r: any) => r.alumnoId === selectedAlumno.id);
+                        if (reg) {
+                          totalClases++;
+                          if (reg.estado === 'presente' || reg.estado === 'tardanza') {
+                            totalAsistencias++;
+                          }
+                        }
+                      });
+
+                      const porcentaje = totalClases === 0 ? 0 : (totalAsistencias / totalClases) * 100;
+                      const porcentajeColor = porcentaje >= 80 ? '#2ecc71' : porcentaje >= 60 ? '#f39c12' : '#e74c3c';
+
+                      return (
+                        <View style={[styles.statBox, { backgroundColor: isDark ? '#2a2a2a' : '#f5f5f5' }]}>
+                          <Text style={[styles.statLabel, { color: subTextColor }]}>Asistencia</Text>
+                          <Text style={[styles.statValue, { color: totalClases === 0 ? subTextColor : porcentajeColor }]}>
+                            {totalClases === 0 ? '--' : `${Math.round(porcentaje)}%`}
+                          </Text>
+                        </View>
+                      );
+                    })()}
                   </View>
+
+                  {/* Asistencia por materia */}
+                  {asistenciaGlobal.length > 0 && (() => {
+                    const asisPorMateria: Record<string, { total: number, asistidos: number }> = {};
+                    
+                    asistenciaGlobal.forEach(dia => {
+                      const reg = dia.registros.find((r: any) => r.alumnoId === selectedAlumno.id);
+                      if (reg) {
+                        const materiaObj = materias.find(m => m.id === dia.materiaId);
+                        const matNombre = materiaObj ? materiaObj.nombre : 'Materia Desconocida';
+                        if (!asisPorMateria[matNombre]) asisPorMateria[matNombre] = { total: 0, asistidos: 0 };
+                        
+                        asisPorMateria[matNombre].total++;
+                        if (reg.estado === 'presente' || reg.estado === 'tardanza') {
+                          asisPorMateria[matNombre].asistidos++;
+                        }
+                      }
+                    });
+
+                    const keys = Object.keys(asisPorMateria);
+                    if (keys.length === 0) return null;
+
+                    return (
+                      <>
+                        <Text style={[styles.sectionTitle, { color: textColor, marginTop: 24, marginLeft: 4, marginBottom: 8 }]}>Asistencia por Materia</Text>
+                        <View style={[styles.infoCard, { backgroundColor: isDark ? '#2a2a2a' : '#f5f5f5', marginTop: 0 }]}>
+                          {keys.map(mat => {
+                            const stats = asisPorMateria[mat];
+                            const pct = (stats.asistidos / stats.total) * 100;
+                            const color = pct >= 80 ? '#2ecc71' : pct >= 60 ? '#f39c12' : '#e74c3c';
+                            
+                            return (
+                              <View key={`asis-${mat}`} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: isDark ? '#444' : '#eee' }}>
+                                <Text style={{ color: textColor, flex: 1 }}>{mat}</Text>
+                                <Text style={{ color: color, fontWeight: 'bold' }}>{Math.round(pct)}%</Text>
+                              </View>
+                            );
+                          })}
+                        </View>
+                      </>
+                    );
+                  })()}
 
                   <View style={styles.gradesHeaderRow}>
                     <Text style={[styles.sectionTitle, { color: textColor, marginTop: 24, marginLeft: 4, marginBottom: 0 }]}>Calificaciones</Text>
@@ -433,12 +525,12 @@ export default function AlumnosScreen() {
               </>
             )}
           </View>
-        </RNView>
+        </View>
       </Modal>
 
       {/* Grade Modal (Add / Edit) */}
       <Modal visible={gradeModalVisible} animationType="fade" transparent={true} onRequestClose={() => setGradeModalVisible(false)}>
-        <RNView style={styles.detailModalOverlay}>
+        <View style={styles.detailModalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: cardBg }]}>
             <View style={[styles.modalHeader, { backgroundColor: cardBg, padding: 0, paddingBottom: 15, paddingTop: 10, borderBottomWidth: 0 }]}>
               <Text style={[styles.modalTitle, { color: textColor }]}>
@@ -498,7 +590,7 @@ export default function AlumnosScreen() {
               </TouchableOpacity>
             </ScrollView>
           </View>
-        </RNView>
+        </View>
       </Modal>
 
     </View>
@@ -621,7 +713,7 @@ const styles = StyleSheet.create({
     padding: 14,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: '#ddd',
   },
   primaryButton: {
     backgroundColor: '#3498db',
