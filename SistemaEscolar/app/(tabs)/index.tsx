@@ -42,8 +42,8 @@ export default function HomeScreen() {
   return (
     <ScrollView style={[styles.container, isDark ? styles.containerDark : styles.containerLight]}>
       <View style={styles.header}>
-        <Text style={styles.greeting}>¡Hola, Profesor!</Text>
-        <Text style={styles.subtitle}>Resumen del día</Text>
+        <Text style={[styles.greeting, { color: isDark ? '#fff' : '#000' }]}>¡Hola, Profesor!</Text>
+        <Text style={[styles.subtitle, { color: isDark ? '#aaa' : '#888' }]}>Resumen del día</Text>
       </View>
 
       <View style={styles.cardsContainer}>
@@ -58,7 +58,7 @@ export default function HomeScreen() {
                 <FontAwesome name={card.icon as any} size={24} color={card.color} />
               </View>
               <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>{card.title}</Text>
+                <Text style={[styles.cardTitle, { color: isDark ? '#aaa' : '#888' }]}>{card.title}</Text>
                 <Text style={[styles.cardValue, { color: card.color }]}>{card.value}</Text>
               </View>
               <FontAwesome name="chevron-right" size={16} color={isDark ? '#555' : '#ccc'} />

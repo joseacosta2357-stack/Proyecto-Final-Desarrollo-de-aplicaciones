@@ -31,7 +31,7 @@ export default function TareasScreen() {
             ]}>
               <View style={styles.cardHeader}>
                 <View style={[styles.badge, { backgroundColor: isDark ? '#333' : '#f0f0f0' }]}>
-                  <Text style={styles.materiaText}>{item.materia}</Text>
+                  <Text style={[styles.materiaText, { color: isDark ? '#aaa' : '#666' }]}>{item.materia}</Text>
                 </View>
                 <View style={styles.statusContainer}>
                   <FontAwesome name={statusIcon} size={14} color={statusColor} style={styles.statusIcon} />
@@ -41,11 +41,11 @@ export default function TareasScreen() {
                 </View>
               </View>
 
-              <Text style={styles.titleText}>{item.titulo}</Text>
+              <Text style={[styles.titleText, { color: isDark ? '#f0f0f0' : '#222' }]}>{item.titulo}</Text>
 
               <View style={styles.footer}>
-                <FontAwesome name="calendar" size={14} color="#888" style={styles.calendarIcon} />
-                <Text style={styles.dateText}>Entrega: {item.fecha}</Text>
+                <FontAwesome name="calendar" size={14} color={isDark ? '#aaa' : '#888'} style={styles.calendarIcon} />
+                <Text style={[styles.dateText, { color: isDark ? '#aaa' : '#666' }]}>Entrega: {item.fecha}</Text>
               </View>
             </Pressable>
           );

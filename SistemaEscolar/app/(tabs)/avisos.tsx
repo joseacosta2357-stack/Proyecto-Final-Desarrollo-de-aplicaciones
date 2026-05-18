@@ -37,12 +37,12 @@ export default function AvisosScreen() {
               <View style={styles.cardHeader}>
                 <View style={styles.titleContainer}>
                   <FontAwesome name={estilo.icon as any} size={16} color={estilo.color} style={styles.headerIcon} />
-                  <Text style={styles.titleText}>{item.titulo}</Text>
+                  <Text style={[styles.titleText, { color: isDark ? '#f0f0f0' : '#222' }]}>{item.titulo}</Text>
                 </View>
-                <Text style={styles.dateText}>{item.fecha}</Text>
+                <Text style={[styles.dateText, { color: isDark ? '#aaa' : '#666' }]}>{item.fecha}</Text>
               </View>
 
-              <Text style={styles.contentText} numberOfLines={2}>{item.contenido}</Text>
+              <Text style={[styles.contentText, { color: isDark ? '#ddd' : '#666' }]} numberOfLines={2}>{item.contenido}</Text>
 
               <View style={styles.footer}>
                 <Text style={styles.readMoreText}>Leer aviso completo</Text>

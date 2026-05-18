@@ -34,12 +34,12 @@ export default function AlumnosScreen() {
             <Image source={{ uri: item.avatar }} style={styles.avatar} />
             
             <View style={styles.cardContent}>
-              <Text style={styles.studentName}>{item.nombre}</Text>
-              <Text style={styles.groupText}>Grupo: {item.grupo}</Text>
+              <Text style={[styles.studentName, { color: isDark ? '#f0f0f0' : '#222' }]}>{item.nombre}</Text>
+              <Text style={[styles.groupText, { color: isDark ? '#aaa' : '#555' }]}>Grupo: {item.grupo}</Text>
             </View>
 
             <View style={styles.promedioContainer}>
-              <Text style={styles.promedioLabel}>Promedio</Text>
+              <Text style={[styles.promedioLabel, { color: isDark ? '#aaa' : '#555' }]}>Promedio</Text>
               <Text style={[styles.promedioValue, { color: getPromedioColor(item.promedio) }]}>
                 {item.promedio.toFixed(1)}
               </Text>
