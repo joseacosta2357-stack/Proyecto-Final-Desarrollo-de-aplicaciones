@@ -5,7 +5,15 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Types
-interface Alumno {
+export interface Calificacion {
+  id: string;
+  materia: string;
+  nota: number;
+  descripcion?: string;
+  fecha: string;
+}
+
+export interface Alumno {
   id: string;
   nombre: string;
   grupo: string;
@@ -14,6 +22,7 @@ interface Alumno {
   promedio: number;
   tareasEntregadas: number;
   tareasTotales: number;
+  calificaciones?: Calificacion[];
 }
 
 const STORAGE_KEY = '@alumnos_data';
@@ -31,6 +40,13 @@ export default function AlumnosScreen() {
   const [nombre, setNombre] = useState('');
   const [grupo, setGrupo] = useState('');
   const [contacto, setContacto] = useState('');
+
+  // Grade Form states
+  const [gradeModalVisible, setGradeModalVisible] = useState(false);
+  const [selectedGrade, setSelectedGrade] = useState<Calificacion | null>(null);
+  const [materia, setMateria] = useState('');
+  const [nota, setNota] = useState('');
+  const [descripcionGrade, setDescripcionGrade] = useState('');
 
   // Load data
   useEffect(() => {
@@ -68,6 +84,12 @@ export default function AlumnosScreen() {
     return '#e74c3c';
   };
 
+  const calculatePromedio = (calificaciones?: Calificacion[]) => {
+    if (!calificaciones || calificaciones.length === 0) return 0;
+    const sum = calificaciones.reduce((acc, c) => acc + c.nota, 0);
+    return sum / calificaciones.length;
+  };
+
   const openAddForm = () => {
     setSelectedAlumno(null);
     setNombre('');
@@ -100,6 +122,7 @@ export default function AlumnosScreen() {
       promedio: selectedAlumno ? selectedAlumno.promedio : 0, // 0 means no grades yet
       tareasEntregadas: selectedAlumno ? selectedAlumno.tareasEntregadas : 0,
       tareasTotales: selectedAlumno ? selectedAlumno.tareasTotales : 0,
+      calificaciones: selectedAlumno ? selectedAlumno.calificaciones : [],
     };
 
     let updatedAlumnos;
@@ -135,6 +158,75 @@ export default function AlumnosScreen() {
   const openDetail = (alumno: Alumno) => {
     setSelectedAlumno(alumno);
     setDetailVisible(true);
+  };
+
+  const openAddGrade = () => {
+    setSelectedGrade(null);
+    setMateria('');
+    setNota('');
+    setDescripcionGrade('');
+    setGradeModalVisible(true);
+  };
+
+  const openEditGrade = (grade: Calificacion) => {
+    setSelectedGrade(grade);
+    setMateria(grade.materia);
+    setNota(grade.nota.toString());
+    setDescripcionGrade(grade.descripcion || '');
+    setGradeModalVisible(true);
+  };
+
+  const handleSaveGrade = () => {
+    if (!materia.trim() || !nota.trim()) {
+      Alert.alert('Error', 'La materia y la nota son obligatorias.');
+      return;
+    }
+    const notaNum = parseFloat(nota);
+    if (isNaN(notaNum) || notaNum < 0 || notaNum > 10) {
+      Alert.alert('Error', 'La nota debe ser un número entre 0 y 10.');
+      return;
+    }
+
+    if (!selectedAlumno) return;
+
+    const newGrade: Calificacion = {
+      id: selectedGrade ? selectedGrade.id : Date.now().toString(),
+      materia: materia.trim(),
+      nota: notaNum,
+      descripcion: descripcionGrade.trim(),
+      fecha: selectedGrade ? selectedGrade.fecha : new Date().toLocaleDateString(),
+    };
+
+    const currentGrades = selectedAlumno.calificaciones || [];
+    let updatedGrades;
+    if (selectedGrade) {
+      updatedGrades = currentGrades.map(g => g.id === selectedGrade.id ? newGrade : g);
+    } else {
+      updatedGrades = [...currentGrades, newGrade];
+    }
+
+    const newPromedio = calculatePromedio(updatedGrades);
+    const updatedAlumno = { ...selectedAlumno, calificaciones: updatedGrades, promedio: newPromedio };
+    
+    setSelectedAlumno(updatedAlumno);
+    const updatedAlumnos = alumnos.map(a => a.id === selectedAlumno.id ? updatedAlumno : a);
+    saveAlumnos(updatedAlumnos);
+    setGradeModalVisible(false);
+  };
+
+  const handleDeleteGrade = (id: string) => {
+    Alert.alert('Eliminar', '¿Estás seguro de eliminar esta calificación?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Eliminar', style: 'destructive', onPress: () => {
+        if (!selectedAlumno) return;
+        const updatedGrades = (selectedAlumno.calificaciones || []).filter(g => g.id !== id);
+        const newPromedio = calculatePromedio(updatedGrades);
+        const updatedAlumno = { ...selectedAlumno, calificaciones: updatedGrades, promedio: newPromedio };
+        setSelectedAlumno(updatedAlumno);
+        const updatedAlumnos = alumnos.map(a => a.id === selectedAlumno.id ? updatedAlumno : a);
+        saveAlumnos(updatedAlumnos);
+      }}
+    ]);
   };
 
   // Theming colors
@@ -279,6 +371,52 @@ export default function AlumnosScreen() {
                     </View>
                   </View>
 
+                  <View style={styles.gradesHeaderRow}>
+                    <Text style={[styles.sectionTitle, { color: textColor, marginTop: 24, marginLeft: 4, marginBottom: 0 }]}>Calificaciones</Text>
+                    <TouchableOpacity style={styles.addGradeBtn} onPress={openAddGrade}>
+                      <FontAwesome name="plus" size={14} color="#fff" />
+                      <Text style={styles.addGradeBtnText}>Añadir</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {(!selectedAlumno.calificaciones || selectedAlumno.calificaciones.length === 0) ? (
+                    <Text style={[styles.emptyGradesText, { color: subTextColor }]}>No hay calificaciones registradas.</Text>
+                  ) : (
+                    Array.from(new Set(selectedAlumno.calificaciones.map(c => c.materia))).map(materia => {
+                      const notasMateria = (selectedAlumno.calificaciones || []).filter(c => c.materia === materia);
+                      const promMateria = notasMateria.reduce((acc, c) => acc + c.nota, 0) / notasMateria.length;
+                      return (
+                        <View key={materia} style={[styles.materiaCard, { backgroundColor: isDark ? '#2a2a2a' : '#f5f5f5' }]}>
+                          <View style={styles.materiaHeader}>
+                            <Text style={[styles.materiaTitle, { color: textColor }]}>{materia}</Text>
+                            <View style={[styles.promedioBadge, { backgroundColor: getPromedioColor(promMateria) }]}>
+                              <Text style={styles.promedioBadgeText}>{promMateria.toFixed(1)}</Text>
+                            </View>
+                          </View>
+                          {notasMateria.map(nota => (
+                            <View key={nota.id} style={[styles.notaRow, { borderTopColor: isDark ? '#444' : '#ddd' }]}>
+                              <View style={styles.notaInfo}>
+                                <Text style={[styles.notaText, { color: textColor }]}>
+                                  <Text style={{ fontWeight: 'bold' }}>{nota.nota.toFixed(1)}</Text>
+                                  {nota.descripcion ? ` - ${nota.descripcion}` : ''}
+                                </Text>
+                                <Text style={[styles.notaFecha, { color: subTextColor }]}>{nota.fecha}</Text>
+                              </View>
+                              <View style={styles.notaActions}>
+                                <TouchableOpacity onPress={() => openEditGrade(nota)} style={{ padding: 8 }}>
+                                  <FontAwesome name="pencil" size={16} color="#3498db" />
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => handleDeleteGrade(nota.id)} style={{ padding: 8 }}>
+                                  <FontAwesome name="trash" size={16} color="#e74c3c" />
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+                          ))}
+                        </View>
+                      );
+                    })
+                  )}
+
                   <View style={{ height: 40, backgroundColor: cardBg }} />
                 </ScrollView>
 
@@ -294,6 +432,56 @@ export default function AlumnosScreen() {
                 </View>
               </>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Grade Modal (Add / Edit) */}
+      <Modal visible={gradeModalVisible} animationType="fade" transparent={true} onRequestClose={() => setGradeModalVisible(false)}>
+        <View style={styles.detailModalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: cardBg }]}>
+            <View style={[styles.modalHeader, { backgroundColor: cardBg, padding: 0, paddingBottom: 15, paddingTop: 10, borderBottomWidth: 0 }]}>
+              <Text style={[styles.modalTitle, { color: textColor }]}>
+                {selectedGrade ? 'Editar Calificación' : 'Nueva Calificación'}
+              </Text>
+              <TouchableOpacity onPress={() => setGradeModalVisible(false)} style={styles.closeBtn}>
+                <FontAwesome name="times" size={24} color={textColor} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ width: '100%', maxHeight: 400 }}>
+              <Text style={[styles.label, { color: textColor, marginTop: 10 }]}>Materia *</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: inputBg, color: textColor }]}
+                placeholder="Ej. Matemáticas"
+                placeholderTextColor={subTextColor}
+                value={materia}
+                onChangeText={setMateria}
+              />
+
+              <Text style={[styles.label, { color: textColor }]}>Calificación (0 - 10) *</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: inputBg, color: textColor }]}
+                placeholder="Ej. 8.5"
+                placeholderTextColor={subTextColor}
+                value={nota}
+                onChangeText={setNota}
+                keyboardType="numeric"
+              />
+
+              <Text style={[styles.label, { color: textColor }]}>Descripción (Opcional)</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: inputBg, color: textColor }]}
+                placeholder="Ej. Examen parcial"
+                placeholderTextColor={subTextColor}
+                value={descripcionGrade}
+                onChangeText={setDescripcionGrade}
+              />
+
+              <TouchableOpacity style={[styles.primaryButton, { marginTop: 24, marginBottom: 10 }]} onPress={handleSaveGrade}>
+                <Text style={styles.primaryButtonText}>Guardar</Text>
+              </TouchableOpacity>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -548,5 +736,87 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  modalContent: {
+    width: '100%',
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  gradesHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  addGradeBtn: {
+    flexDirection: 'row',
+    backgroundColor: '#3498db',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  addGradeBtnText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: 6,
+  },
+  emptyGradesText: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: 16,
+  },
+  materiaCard: {
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 12,
+  },
+  materiaHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  materiaTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  promedioBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  promedioBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  notaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    paddingVertical: 8,
+  },
+  notaInfo: {
+    flex: 1,
+  },
+  notaText: {
+    fontSize: 14,
+  },
+  notaFecha: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  notaActions: {
+    flexDirection: 'row',
   },
 });
