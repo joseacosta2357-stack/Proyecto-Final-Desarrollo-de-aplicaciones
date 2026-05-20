@@ -1,17 +1,16 @@
-# 📚 Nombre del proyecto
-<!-- Escribe aquí el nombre de tu aplicación -->
-> _Por definir_
+# 📚 Sistema De Gestion Escolar
+
+Proyecto Final para la materia de DESARROLLO DE APLICACIONES WEB EN LA NUBE Y MÓVILES.
 
 ---
 
 ## 👥 Integrantes
-<!-- Agrega el nombre completo de cada integrante del equipo -->
 
 | Nombre | Rol |
 |--------|-----|
-| &nbsp; | &nbsp; |
-| &nbsp; | &nbsp; |
-| &nbsp; | &nbsp; |
+| ACOSTA ANGUIANO JOSE PABLO | Lider |
+| LOPEZ CHAVARIN MARCO ANTONIO | Apoyo |
+
 
 ---
 
@@ -161,5 +160,23 @@ nombre-del-proyecto/
 Este proyecto se desarrolla con fines académicos.
 
 ---
+## Capturas
+Capturas App
+Inicio
+ 
+Materias
+ <img width="975" height="459" alt="image" src="https://github.com/user-attachments/assets/17d0b89a-c45d-4bf9-90a1-28242edc6761" />
 
+Alumnos
+<img width="975" height="401" alt="image" src="https://github.com/user-attachments/assets/63b2f580-1fc1-4329-bd30-2e520d75241a" />
+
+Tareas
+<img width="975" height="466" alt="image" src="https://github.com/user-attachments/assets/f9c35aee-787b-4009-a583-3feec5f8bae7" />
+
+Avisos
+ <img width="975" height="463" alt="image" src="https://github.com/user-attachments/assets/8fc3a58b-17f9-404a-8977-6e0f36bdd69a" />
+ 
+---
+## Conclusiones
+La app fue desarrollada con el objetivo de pulir nuestras habilidades con diferentes de IA, las cuales aceleraron el proceso de creacion por mucho mas de lo esperado, es necesario comprenderlas para asi no recaer en malos habitos y poder usarlas en su maximo explendor
 _Desarrollado con React Native y Expo._
